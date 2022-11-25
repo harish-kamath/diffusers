@@ -259,6 +259,7 @@ class EulerDiscreteScheduler(SchedulerMixin, ConfigMixin):
         original_samples: torch.FloatTensor,
         noise: torch.FloatTensor,
         timesteps: torch.FloatTensor,
+        train_v_pred: bool = False
     ) -> torch.FloatTensor:
         # Make sure sigmas and timesteps have the same device and dtype as original_samples
         self.sigmas = self.sigmas.to(device=original_samples.device, dtype=original_samples.dtype)
@@ -277,7 +278,10 @@ class EulerDiscreteScheduler(SchedulerMixin, ConfigMixin):
         while len(sigma.shape) < len(original_samples.shape):
             sigma = sigma.unsqueeze(-1)
 
-        noisy_samples = original_samples + noise * sigma
+        if train_v_pred and self.prediction_type == "v_prediction":
+            noisy_samples = original_samples * (sigma**2 + 1) + noise * sigma * ((sigma**2 + 1) ** 0.5)
+        else:
+            noisy_samples = original_samples + noise * sigma
         return noisy_samples
 
     def __len__(self):
